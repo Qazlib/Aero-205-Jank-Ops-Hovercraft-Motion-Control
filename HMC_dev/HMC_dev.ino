@@ -1,4 +1,7 @@
 #include <Servo.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_L3GD20_U.h>
 
 //pin numbers and values for each actuator
 const int propServoPin_in = 12;
@@ -24,9 +27,27 @@ float hippoServoValue_out;
 const int dirPin_out = 3;
 float dir;
 
+
+//Yaw Rate (yr) controller variables
+float yr_targ;
+float yr;
+float yr_err;
+float yr_err_last;
+float yr_err_total;
+
+float kp = 0;
+float ki = 0;
+float kd = 0;
+
+
 Servo propServo;
 Servo hippoServo;
 
+
+//function to read in yaw rate data
+float getYawRate(){
+  
+}
 
 void setup() {
   analogReference(EXTERNAL);
