@@ -1,7 +1,13 @@
+#include <Adafruit_Sensor.h>
+
+#include <Adafruit_L3GD20_U.h>
+#include <Adafruit_L3GD20.h>
+
 #include <Servo.h>
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_L3GD20_U.h>
+
+//program clock (ms)
+const float ts = 20.0;
 
 //pin numbers and values for each actuator
 const int propServoPin_in = 12;
@@ -28,15 +34,20 @@ const int dirPin_out = 3;
 float dir;
 
 
+Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
+
+
 //Yaw Rate (yr) controller variables
 float yr_targ;
 float yr;
 float yr_err;
-float yr_err_last;
+float yr_err_k1;
 float yr_err_total;
+bool yrc_active;
+bool yrc_active_k1;
 
-float kp = 0;
-float ki = 0;
+float kp = -150;
+float ki = -1000;
 float kd = 0;
 
 
@@ -44,13 +55,21 @@ Servo propServo;
 Servo hippoServo;
 
 
-//function to read in yaw rate data
-float getYawRate(){
-  
-}
-
 void setup() {
+  Serial.begin(9600);
   analogReference(EXTERNAL);
+  gyro.enableAutoRange(true);
+
+  //initialize sensor
+    if(!gyro.begin())
+  {
+    /* There was a problem detecting the L3GD20 ... check your connections */
+    Serial.println("Ooops, no L3GD20 detected ... Check your wiring!");
+    while(1);
+  }
+  
+  sensor_t sensor;
+  gyro.getSensor(&sensor);
   
   pinMode(13,OUTPUT);
   pinMode(propServoPin_in, INPUT);
@@ -68,15 +87,81 @@ void setup() {
 
   propServo.attach(propServoPin_out);
   hippoServo.attach(hippoServoPin_out);
-  Serial.begin(9600);
+
+  
   
 }
 
 void loop() {
+
+
+
+    /* Get a new sensor event */ 
+  sensors_event_t event; 
+  gyro.getEvent(&event);
+
+  /* Display the results (speed is measured in rad/s) */
+
+  yr = event.gyro.z;
+  Serial.print("X: "); Serial.print(event.gyro.x); Serial.print("  ");
+  Serial.print("Y: "); Serial.print(event.gyro.y); Serial.print("  ");
+  Serial.print("Z: "); Serial.print(yr); Serial.print("  ");
+  Serial.println("rad/s ");
+
+
+
+
+  
   digitalWrite(13, HIGH);
 
   propServoValue_in = readSensor(3, 2, propServoPin_in);
-  propServoValue_out = -0.436*propServoValue_in + 1909.745;
+  
+  if (propServoValue_in > 1320){
+    yr_targ = 0.0009*propServoValue_in - 1.189;
+  }
+  else{
+    yr_targ = 0.001049869*propServoValue_in - 1.38583;
+  }
+  
+  //deadband
+  if (abs(propServoValue_in - 1320) < 50){
+    yr_targ = 0;
+  }
+
+  //yaw rate request limits
+  if (yr_targ > 0.4){
+    yr_targ = 0.4;
+  }
+  else if (yr_targ < -0.4){
+    yr_targ = -0.4;
+  }
+
+
+  if (yr_targ == 0){
+    yrc_active = true;  
+      
+    //reset integral
+    if (!yrc_active_k1){
+      yr_err_total = 0;
+    }
+    
+    yr_err = yr - yr_targ;
+    yr_err_total += yr_err * ts/1000;
+
+
+
+    //Output signal
+    propServoValue_out = 1320 + kp*yr_err + ki*yr_err_total + kd*(yr_err - yr_err_k1)/ts;
+  }
+  else {
+    yrc_active = false;
+    propServoValue_out = -0.436*propServoValue_in + 1909.745;
+  }
+
+
+  
+  yr_err_k1 = yr_err;
+  yrc_active_k1 = yrc_active;
 
   //control signal bounds
   if (propServoValue_out > 1500){
@@ -85,11 +170,7 @@ void loop() {
   else if (propServoValue_out < 1140){
     propServoValue_out = 1140; 
   }
-  //deadband
-  if (abs(propServoValue_in - 1350) < 50){
-    propServoValue_out = (1140+1500)/2;
-  }
-
+Serial.print(propServoValue_out);
 
 
 
@@ -166,6 +247,7 @@ void loop() {
   }
 
   //Output
+  
   digitalWrite(dirPin_out, dir);
   propServo.writeMicroseconds(propServoValue_out);
   hippoServo.writeMicroseconds(hippoServoValue_out);
@@ -191,10 +273,10 @@ void loop() {
   Serial.print('\n');
   */
   
-  delay(10);
+  delay(ts/2);
   
   digitalWrite(13, LOW);
-  delay(10);
+  delay(ts/2);
 }
 
 
