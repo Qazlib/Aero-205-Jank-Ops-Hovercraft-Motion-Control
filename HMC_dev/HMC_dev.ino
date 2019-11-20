@@ -46,8 +46,8 @@ float yr_err_total;
 bool yrc_active;
 bool yrc_active_k1;
 
-float kp = -150;
-float ki = -1000;
+float kp = 200;
+float ki = 0;
 float kd = 0;
 
 
@@ -103,10 +103,11 @@ void loop() {
   /* Display the results (speed is measured in rad/s) */
 
   yr = event.gyro.z;
-  Serial.print("X: "); Serial.print(event.gyro.x); Serial.print("  ");
-  Serial.print("Y: "); Serial.print(event.gyro.y); Serial.print("  ");
-  Serial.print("Z: "); Serial.print(yr); Serial.print("  ");
-  Serial.println("rad/s ");
+  //Serial.print("X: "); Serial.print(event.gyro.x); Serial.print("  ");
+  //Serial.print("Y: "); Serial.print(event.gyro.y); Serial.print("  ");
+  //Serial.print("Z: "); Serial.print(yr); Serial.print("  ");
+  //Serial.println("rad/s ");
+
 
 
 
@@ -114,63 +115,7 @@ void loop() {
   
   digitalWrite(13, HIGH);
 
-  propServoValue_in = readSensor(3, 2, propServoPin_in);
-  
-  if (propServoValue_in > 1320){
-    yr_targ = 0.0009*propServoValue_in - 1.189;
-  }
-  else{
-    yr_targ = 0.001049869*propServoValue_in - 1.38583;
-  }
-  
-  //deadband
-  if (abs(propServoValue_in - 1320) < 50){
-    yr_targ = 0;
-  }
 
-  //yaw rate request limits
-  if (yr_targ > 0.4){
-    yr_targ = 0.4;
-  }
-  else if (yr_targ < -0.4){
-    yr_targ = -0.4;
-  }
-
-
-  if (yr_targ == 0){
-    yrc_active = true;  
-      
-    //reset integral
-    if (!yrc_active_k1){
-      yr_err_total = 0;
-    }
-    
-    yr_err = yr - yr_targ;
-    yr_err_total += yr_err * ts/1000;
-
-
-
-    //Output signal
-    propServoValue_out = 1320 + kp*yr_err + ki*yr_err_total + kd*(yr_err - yr_err_k1)/ts;
-  }
-  else {
-    yrc_active = false;
-    propServoValue_out = -0.436*propServoValue_in + 1909.745;
-  }
-
-
-  
-  yr_err_k1 = yr_err;
-  yrc_active_k1 = yrc_active;
-
-  //control signal bounds
-  if (propServoValue_out > 1500){
-    propServoValue_out = 1500;
-  }
-  else if (propServoValue_out < 1140){
-    propServoValue_out = 1140; 
-  }
-Serial.print(propServoValue_out);
 
 
 
@@ -191,6 +136,9 @@ Serial.print(propServoValue_out);
   if (abs(hippoServoValue_in - 1485) < 50){
     hippoServoValue_out = 1380;
   }
+
+
+
 
 
 
@@ -221,6 +169,96 @@ Serial.print(propServoValue_out);
   if (abs(propMotorValue_in - 1288) < 30){
     propMotorValue_out = 0;
   }
+
+
+
+
+
+
+
+
+
+  propServoValue_in = readSensor(3, 2, propServoPin_in);
+  
+  if (propServoValue_in > 1320){
+    yr_targ = 0.0009*propServoValue_in - 1.189;
+  }
+  else{
+    yr_targ = 0.001049869*propServoValue_in - 1.38583;
+  }
+  
+  //deadband
+  if (abs(propServoValue_in - 1320) < 50){
+    yr_targ = 0;
+  }
+
+  //yaw rate request limits
+  if (yr_targ > 0.4){
+    yr_targ = 0.4;
+  }
+  else if (yr_targ < -0.4){
+    yr_targ = -0.4;
+  }
+
+
+  if (yr_targ == 0){
+    yrc_active = true;  
+      
+    //reset integral
+    if (yrc_active_k1 == false){
+      yr_err_total = 0;
+    }
+    
+    yr_err = yr - yr_targ;
+    yr_err_total += yr_err * ts/1000;
+
+
+
+    //Output signal
+    if (dir == LOW){
+      propServoValue_out = 1320 + kp*yr_err + ki*yr_err_total + kd*(yr_err - yr_err_k1)/(ts/1000);
+    }
+    else{
+      propServoValue_out = 1320 - kp*yr_err - ki*yr_err_total - kd*(yr_err - yr_err_k1)/(ts/1000);
+
+    }
+    
+  }
+  else {
+    //turn requested. Control using joystick
+    yrc_active = false;
+    propServoValue_out = 0.436*propServoValue_in + 730.25;
+    
+    //control signal bounds
+    if (propServoValue_out > 1500){
+      propServoValue_out = 1500;
+    }
+    else if (propServoValue_out < 1140){
+      propServoValue_out = 1140; 
+    }
+    
+  }
+
+
+    //control signal bounds
+    if (propServoValue_out > 2330){
+      propServoValue_out = 2330;
+    }
+    else if (propServoValue_out < 650){
+      propServoValue_out = 650; 
+    }
+
+
+
+
+   
+  yr_err_k1 = yr_err;
+  yrc_active_k1 = yrc_active;
+
+  
+
+
+
 
 
 
@@ -279,8 +317,10 @@ Serial.print(propServoValue_out);
   delay(ts/2);
 }
 
-
-//Averages sensor readings over i samples spaced j ms apart
+//Moving average filter
+//i: number of samples
+//j: sample period samples (ms)
+//pin: input pin number
 float readSensor(int i, int j, int pin){
   float sum = 0;
   for (int q = 0; q < i; q++)
