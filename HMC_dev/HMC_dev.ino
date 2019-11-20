@@ -9,6 +9,7 @@
 //program clock (ms)
 const float ts = 20.0;
 
+
 //pin numbers and values for each actuator
 const int propServoPin_in = 12;
 float propServoValue_in;
@@ -45,9 +46,10 @@ float yr_err_k1;
 float yr_err_total;
 bool yrc_active;
 bool yrc_active_k1;
+int yrc_int_active;
 
 float kp = 200;
-float ki = 0;
+float ki = 1100;
 float kd = 0;
 
 
@@ -117,34 +119,6 @@ void loop() {
 
 
 
-
-
-  hippoServoValue_in = readSensor(3, 2, hippoServoPin_in);
-  Serial.print(hippoServoValue_in);
-  Serial.print("      ");
-  hippoServoValue_out = 1.994*hippoServoValue_in - 1159;
-
-  //control signal bounds
-  if (hippoServoValue_out > 2230){
-    hippoServoValue_out = 2230;
-  }
-  else if (hippoServoValue_out < 615){
-    hippoServoValue_out = 615;
-  }
-
-  //deadband around neutral
-  if (abs(hippoServoValue_in - 1485) < 50){
-    hippoServoValue_out = 1380;
-  }
-
-
-
-
-
-
-
-
-
   propMotorValue_in = pulseIn(propMotorPin_in, HIGH);
 
   //direction logic
@@ -166,7 +140,7 @@ void loop() {
   }
 
   //deadband around neutral
-  if (abs(propMotorValue_in - 1288) < 30){
+  if (abs(propMotorValue_in - 1288) < 50){
     propMotorValue_out = 0;
   }
 
@@ -174,7 +148,7 @@ void loop() {
 
 
 
-
+  //-----------------------------------------------------------------B I G   B O I---------------------------------------------------------------
 
 
 
@@ -202,7 +176,16 @@ void loop() {
 
 
   if (yr_targ == 0){
-    yrc_active = true;  
+    yrc_active = true;
+
+    //activate integral term if heading straight
+    if (abs(yr) < 0.2){
+      yrc_int_active = 1;
+    }
+    else{
+      yrc_int_active = 0;
+    }
+
       
     //reset integral
     if (yrc_active_k1 == false){
@@ -216,10 +199,12 @@ void loop() {
 
     //Output signal
     if (dir == LOW){
-      propServoValue_out = 1320 + kp*yr_err + ki*yr_err_total + kd*(yr_err - yr_err_k1)/(ts/1000);
+      //moving forwards
+      propServoValue_out = 1320 + kp*yr_err + yrc_int_active*ki*yr_err_total + kd*(yr_err - yr_err_k1)/(ts/1000);
     }
     else{
-      propServoValue_out = 1320 - kp*yr_err - ki*yr_err_total - kd*(yr_err - yr_err_k1)/(ts/1000);
+      //moving backwards
+      propServoValue_out = 1320 - kp*yr_err - yrc_int_active*ki*yr_err_total - kd*(yr_err - yr_err_k1)/(ts/1000);
 
     }
     
@@ -258,7 +243,7 @@ void loop() {
   
 
 
-
+//--------------------------------------------------------------------E N D   B I G   B O I------------------------------------------------------------------
 
 
 
@@ -280,7 +265,7 @@ void loop() {
   }
 
   //deadband around neutral
-  if (abs(propMotorValue_in - 1288) < 30){
+  if (abs(propMotorValue_in - 1288) < 50){
     impMotorValue_out = 0;
   }
 
