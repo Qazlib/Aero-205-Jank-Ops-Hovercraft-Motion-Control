@@ -166,7 +166,7 @@ void loop() {
   }
   
   //deadband
-  if (abs(propServoValue_in - 1320) < 50){
+  if (abs(propServoValue_in - 1288) < 50){
     yr_targ = 0;
   }
 
@@ -234,11 +234,11 @@ void loop() {
   else {
  
     yrc_active = false;
-    propServoValue_out = 0.436*propServoValue_in + 730.25;
+    propServoValue_out = 0.558*propServoValue_in + 616.436;
     
     //control signal bounds
-    if (propServoValue_out > 1500){
-      propServoValue_out = 1500;
+    if (propServoValue_out > 1600){
+      propServoValue_out = 1600;
     }
     else if (propServoValue_out < 1140){
       propServoValue_out = 1140; 

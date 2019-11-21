@@ -21,7 +21,7 @@ void loop() {
   }
   */
   
-  servo.writeMicroseconds(1500);
+  servo.writeMicroseconds(1370);
   delay(1);
   
 }
