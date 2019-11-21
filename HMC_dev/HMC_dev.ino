@@ -47,11 +47,12 @@ float yr_err_total;
 bool yrc_active;
 bool yrc_active_k1;
 int yrc_int_active;
+int yrc_int_active_k1;
 float yr_limit = 0.9;
 bool yr_limit_active;
 
-float kp = 200;
-float ki = 1100;
+float kp = -200;
+float ki = -1100;
 float kd = 0;
 
 
@@ -127,11 +128,11 @@ void loop() {
   //direction logic
   if (propMotorValue_in > 1288){
     propMotorValue_out = 0.623*propMotorValue_in - 803.03;
-    dir = LOW;
+    dir = HIGH;
   }
   else{
     propMotorValue_out = -0.251*propMotorValue_in + 323.62;
-    dir = HIGH;
+    dir = LOW;
   }
 
   //control signal bounds
@@ -201,8 +202,8 @@ void loop() {
     }
 
       
-    //reset integral if initializing yrc
-    if (yrc_active_k1 == false){
+    //reset integral if initializing steady straight motion
+    if (yrc_int_active_k1 == 0 && yrc_int_active == 1){
       yr_err_total = 0;
     }
 
@@ -260,6 +261,7 @@ void loop() {
   //update variables
   yr_err_k1 = yr_err;
   yrc_active_k1 = yrc_active;
+  yrc_int_active_k1 = yrc_int_active;
 
   
 
