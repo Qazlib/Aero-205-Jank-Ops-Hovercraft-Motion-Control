@@ -127,11 +127,13 @@ void loop() {
 
   //direction logic
   if (propMotorValue_in > 1288){
+    //forwards
     propMotorValue_out = 0.623*propMotorValue_in - 803.03;
     dir = HIGH;
   }
   else{
-    propMotorValue_out = -0.251*propMotorValue_in + 323.62;
+    //backwards
+    propMotorValue_out = -0.427*propMotorValue_in +550.15;
     dir = LOW;
   }
 
