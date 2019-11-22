@@ -21,12 +21,10 @@ float propMotorValue_in;
 const int propMotorPin_out = 5;
 float propMotorValue_out = 0;
 
-const int impMotorPin_in = 10;
-float impMotorValue_in;
 const int impMotorPin_out = 6;
 float impMotorValue_out;
 
-const int hippoServoPin_in = 9;
+const int hippoServoPin_in = 10;
 float hippoServoValue_in;
 const int hippoServoPin_out = 8;  
 float hippoServoValue_out;
@@ -48,6 +46,7 @@ bool yrc_active;
 bool yrc_active_k1;
 int yrc_int_active;
 int yrc_int_active_k1;
+
 float yr_limit = 0.9;
 bool yr_limit_active;
 
@@ -83,7 +82,6 @@ void setup() {
   pinMode(propMotorPin_in, INPUT);
   pinMode(propMotorPin_out, OUTPUT);
 
-  pinMode(impMotorPin_in, INPUT);
   pinMode(impMotorPin_out, OUTPUT);
 
   pinMode(hippoServoPin_in, INPUT);
@@ -109,6 +107,11 @@ void loop() {
 
   yr = event.gyro.z;
   yr = yr-0.01;
+
+  //deadband around zero yaw rate
+  if (abs(yr) < 0.02){
+    yr = 0;
+  }
   //Serial.print("X: "); Serial.print(event.gyro.x); Serial.print("  ");
   //Serial.print("Y: "); Serial.print(event.gyro.y); Serial.print("  ");
   //Serial.print("Z: "); Serial.print(yr); Serial.print("  ");
@@ -192,6 +195,7 @@ void loop() {
     }
     else{
       yrc_int_active = 0;
+      yr_err_total = 0;
     }
 
     //brake if performing severe countersteer movement (see impeller motor control logic)
@@ -300,6 +304,19 @@ void loop() {
   if (abs(propMotorValue_in - 1288) < 50){
     impMotorValue_out = 0;
   }
+
+
+
+
+  hippoServoValue_in = readSensor(3,2,hippoServoPin_in);
+ 
+  if (hippoServoValue_in > 1500){
+    hippoServoValue_out = 2125;
+  }
+  else{
+    hippoServoValue_out = 600;
+  }
+
 
   
   
