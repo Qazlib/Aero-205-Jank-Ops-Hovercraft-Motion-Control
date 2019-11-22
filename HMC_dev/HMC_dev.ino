@@ -240,7 +240,12 @@ void loop() {
   else {
  
     yrc_active = false;
-    propServoValue_out = 0.558*propServoValue_in + 616.436;
+    if (propServoValue_in > 1288){
+    propServoValue_out = 0.6573*propServoValue_in + 440.563;
+    }
+    else{
+      propServoValue_out = 0.602*propServoValue_in + 574.716;
+    }
     
     //control signal bounds
     if (propServoValue_out > 1600){
