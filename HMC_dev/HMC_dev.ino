@@ -50,7 +50,7 @@ int yrc_int_active_k1;
 float yr_limit = 0.9;
 bool yr_limit_active;
 
-float kp = -200;
+float kp = -170;
 float ki = -1100;
 float kd = 0;
 
@@ -163,7 +163,7 @@ void loop() {
 
   propServoValue_in = readSensor(3, 2, propServoPin_in);
   
-  if (propServoValue_in > 1320){
+  if (propServoValue_in > 1288){
     yr_targ = 0.0009*propServoValue_in - 1.189;
   }
   else{
@@ -171,7 +171,7 @@ void loop() {
   }
   
   //deadband
-  if (abs(propServoValue_in - 1288) < 50){
+  if (abs(propServoValue_in - 1288) < 80){
     yr_targ = 0;
   }
 
@@ -284,6 +284,11 @@ void loop() {
     impMotorValue_out = -0.6235*propMotorValue_in + 809.89;
   }
 
+    
+  //brake if countersteering
+  if (yr_limit_active == true){
+    impMotorValue_out = -212.5*abs(yr) + 255;
+  }
   
   //control signal bounds
   if (impMotorValue_out < 0){
@@ -293,12 +298,7 @@ void loop() {
     impMotorValue_out = 255;
   }
 
-  Serial.print(yr_limit_active);
-  Serial.print("     ");
-  //brake if countersteering
-  if (yr_limit_active == true){
-    impMotorValue_out = 0;
-  }
+  
 
   //deadband around neutral
   if (abs(propMotorValue_in - 1288) < 50){
@@ -314,7 +314,7 @@ void loop() {
     hippoServoValue_out = 2125;
   }
   else{
-    hippoServoValue_out = 600;
+    hippoServoValue_out = 590;
   }
 
 
