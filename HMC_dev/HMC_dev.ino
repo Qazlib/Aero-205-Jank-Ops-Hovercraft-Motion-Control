@@ -8,6 +8,8 @@
 
 //program clock (ms)
 const float ts = 20.0;
+unsigned long current_time = millis();
+unsigned long time_last_event  =  millis();
 
 
 //pin numbers and values for each actuator
@@ -47,12 +49,14 @@ bool yrc_active_k1;
 int yrc_int_active;
 int yrc_int_active_k1;
 
-float yr_limit = 0.9;
+float yr_limit = 0.5;
 bool yr_limit_active;
 
-float kp = -170;
-float ki = -1100;
+float kp = -150;
+float ki = -1150;
 float kd = 0;
+
+bool led_on = true;
 
 
 Servo propServo;
@@ -76,6 +80,7 @@ void setup() {
   gyro.getSensor(&sensor);
   
   pinMode(13,OUTPUT);
+  pinMode(4, OUTPUT);
   pinMode(propServoPin_in, INPUT);
   pinMode(propServoPin_out, OUTPUT);
 
@@ -96,8 +101,27 @@ void setup() {
 }
 
 void loop() {
+  //side LEDs
+  digitalWrite(4, HIGH);
 
 
+  //cycle main LED at 1 Hz
+  current_time = millis();
+  if (abs(current_time - time_last_event) > 1000){
+    if (led_on == true){
+      led_on = false;
+    }
+    else{
+      led_on = true;
+    }
+  }
+
+  if (led_on == true){
+    digitalWrite(13, HIGH);
+  }
+  else{
+    digitalWrite(13, LOW);
+  }
 
   /* Get a new sensor event */ 
   sensors_event_t event; 
@@ -112,17 +136,9 @@ void loop() {
   if (abs(yr) < 0.02){
     yr = 0;
   }
-  //Serial.print("X: "); Serial.print(event.gyro.x); Serial.print("  ");
-  //Serial.print("Y: "); Serial.print(event.gyro.y); Serial.print("  ");
-  //Serial.print("Z: "); Serial.print(yr); Serial.print("  ");
-  //Serial.println("rad/s ");
+  Serial.print(yr);
+  Serial.print("\n");
 
-
-
-
-
-  
-  digitalWrite(13, HIGH);
 
 
 
@@ -158,8 +174,7 @@ void loop() {
 
 
   //-----------------------------------------------------------------B I G   B O I---------------------------------------------------------------
-  Serial.print(yr);
-  Serial.print("     ");
+
 
   propServoValue_in = readSensor(3, 2, propServoPin_in);
   
@@ -315,11 +330,14 @@ void loop() {
 
   hippoServoValue_in = readSensor(3,2,hippoServoPin_in);
  
-  if (hippoServoValue_in > 1500){
+  if (hippoServoValue_in > 1700){
     hippoServoValue_out = 2125;
   }
-  else{
+  else if (hippoServoValue_in < 1200){
     hippoServoValue_out = 590;
+  }
+  else{
+    hippoServoValue_out = 2050;
   }
 
 
@@ -352,10 +370,8 @@ void loop() {
   Serial.print('\n');
   */
   
-  delay(ts/2);
-  
-  digitalWrite(13, LOW);
-  delay(ts/2);
+  delay(ts);
+  digitalWrite(4, LOW);
 }
 
 //Moving average filter
